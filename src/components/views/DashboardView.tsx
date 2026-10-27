@@ -1,25 +1,27 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/lib/store';
 import { formatINR, formatDate, getMaturityBadgeStyle, filterFdrsByPermission } from '@/lib/utils';
 import { NavTab } from '@/components/Sidebar';
-import { 
-  FileCheck2, 
-  IndianRupee, 
-  ShieldAlert, 
-  Clock, 
-  AlertOctagon, 
-  RefreshCcw, 
-  CornerDownRight, 
+import { VaultCanvas3D } from '@/components/3d/VaultCanvas3D';
+import { AmbientOrb3D } from '@/components/3d/AmbientOrb3D';
+import {
+  FileText,
+  IndianRupee,
+  ShieldAlert,
+  Clock,
+  AlertOctagon,
+  RefreshCcw,
+  CornerDownRight,
+  FileWarning,
+  Activity,
+  TrendingUp,
   CheckCircle2,
-  Building2,
   ChevronRight,
   ShieldCheck,
-  TrendingUp,
-  FileWarning,
-  ExternalLink,
-  Activity
+  Dot,
+  ArrowUpRight,
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -27,265 +29,231 @@ interface DashboardViewProps {
   onSelectFdr: (fdrId: string) => void;
 }
 
+interface KpiCard {
+  label: string;
+  sublabel: string;
+  value: number | string;
+  icon: React.ElementType;
+  accentColor: string;
+  badgeText?: string;
+  badgeClass?: string;
+  tab: NavTab;
+  isAlert?: boolean;
+}
+
 export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onSelectFdr }) => {
   const { currentUser, fdrs, renewals, releases, institutions, auditLogs, simulatedDate } = useApp();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setMounted(true), 60); return () => clearTimeout(t); }, []);
 
   const userFdrs = filterFdrsByPermission(fdrs, currentUser);
 
-  // Exact calculated metrics from active state
-  const totalActiveFdrs = userFdrs.filter(f => f.lifecycleStatus === 'ACTIVE' || f.lifecycleStatus === 'VERIFIED').length;
-  const totalDepositValue = userFdrs.reduce((acc, curr) => acc + curr.principalAmount, 0);
-  const pendingVerification = userFdrs.filter(f => f.verificationStatus === 'PENDING' || f.lifecycleStatus === 'UNDER_VERIFICATION').length;
-  const expiring30Days = userFdrs.filter(f => f.daysUntilMaturity > 0 && f.daysUntilMaturity <= 30 && f.lifecycleStatus === 'ACTIVE').length;
-  const maturedReview = userFdrs.filter(f => f.daysUntilMaturity <= 0 || f.lifecycleStatus === 'MATURED_NEEDS_REVIEW').length;
-  const pendingRenewals = renewals.filter(r => r.status === 'SUBMITTED' || r.status === 'UNDER_REVIEW').length;
-  const pendingReleases = releases.filter(r => r.status === 'AWAITING_DECISION' || r.status === 'UNDER_REVIEW').length;
-  const openDiscrepancies = userFdrs.reduce((acc, curr) => acc + curr.discrepancies.filter(d => d.status === 'OPEN').length, 0);
+  const totalActive        = userFdrs.filter(f => f.lifecycleStatus === 'ACTIVE' || f.lifecycleStatus === 'VERIFIED').length;
+  const totalValue         = userFdrs.reduce((a, b) => a + b.principalAmount, 0);
+  const pendingVerif       = userFdrs.filter(f => f.verificationStatus === 'PENDING' || f.lifecycleStatus === 'UNDER_VERIFICATION').length;
+  const expiring30         = userFdrs.filter(f => f.daysUntilMaturity > 0 && f.daysUntilMaturity <= 30 && f.lifecycleStatus === 'ACTIVE').length;
+  const maturedReview      = userFdrs.filter(f => f.daysUntilMaturity <= 0 || f.lifecycleStatus === 'MATURED_NEEDS_REVIEW').length;
+  const pendingRenewals    = renewals.filter(r => r.status === 'SUBMITTED' || r.status === 'UNDER_REVIEW').length;
+  const pendingReleases    = releases.filter(r => r.status === 'AWAITING_DECISION' || r.status === 'UNDER_REVIEW').length;
+  const openDiscrepancies  = userFdrs.reduce((a, b) => a + b.discrepancies.filter(d => d.status === 'OPEN').length, 0);
+  const depositValueCr     = (totalValue / 10_000_000).toFixed(2);
 
-  // Bank Distribution
-  const bankDistribution: { [bank: string]: number } = {};
-  userFdrs.forEach(f => {
-    bankDistribution[f.issuingBank] = (bankDistribution[f.issuingBank] || 0) + f.principalAmount;
-  });
+  const bankDistribution: Record<string, number> = {};
+  userFdrs.forEach(f => { bankDistribution[f.issuingBank] = (bankDistribution[f.issuingBank] || 0) + f.principalAmount; });
 
-  // Lifecycle breakdown
-  const lifecycleCounts = {
-    ACTIVE: userFdrs.filter(f => f.lifecycleStatus === 'ACTIVE').length,
-    UNDER_VERIFICATION: userFdrs.filter(f => f.lifecycleStatus === 'UNDER_VERIFICATION').length,
+  const lifecycle = {
+    ACTIVE:              userFdrs.filter(f => f.lifecycleStatus === 'ACTIVE').length,
+    UNDER_VERIFICATION:  userFdrs.filter(f => f.lifecycleStatus === 'UNDER_VERIFICATION').length,
     CORRECTION_REQUIRED: userFdrs.filter(f => f.lifecycleStatus === 'CORRECTION_REQUIRED').length,
-    MATURED_NEEDS_REVIEW: userFdrs.filter(f => f.lifecycleStatus === 'MATURED_NEEDS_REVIEW').length,
+    MATURED_NEEDS_REVIEW:userFdrs.filter(f => f.lifecycleStatus === 'MATURED_NEEDS_REVIEW').length,
     RENEWAL_IN_PROGRESS: userFdrs.filter(f => f.lifecycleStatus === 'RENEWAL_IN_PROGRESS').length,
-    RELEASE_REQUESTED: userFdrs.filter(f => f.lifecycleStatus === 'RELEASE_REQUESTED').length
+    RELEASE_REQUESTED:   userFdrs.filter(f => f.lifecycleStatus === 'RELEASE_REQUESTED').length,
   };
 
-  // Critical Action Items
-  const criticalItems = userFdrs.filter(f => 
+  const criticalItems = userFdrs.filter(f =>
     (f.daysUntilMaturity <= 7 && f.lifecycleStatus === 'ACTIVE') ||
     f.lifecycleStatus === 'MATURED_NEEDS_REVIEW' ||
     f.lifecycleStatus === 'CORRECTION_REQUIRED'
   );
 
+  const kpiCards: KpiCard[] = [
+    { label: 'Active Instruments',   sublabel: 'AICTE lien enforced',        value: totalActive,       icon: FileText,       accentColor: '#22c55e', badgeText: `of ${userFdrs.length}`, badgeClass: 'badge-muted', tab: 'fdr_registry' },
+    { label: 'Secured Capital',      sublabel: 'Aggregate principal on record', value: `₹${depositValueCr} Cr`, icon: IndianRupee, accentColor: '#60a5fa', tab: 'fdr_registry' },
+    { label: 'Pending Verification', sublabel: 'Awaiting officer sign-off',   value: pendingVerif,      icon: ShieldAlert,    accentColor: '#60a5fa', badgeText: pendingVerif > 0 ? 'Review' : undefined, badgeClass: 'badge-blue', tab: 'verification', isAlert: pendingVerif > 0 },
+    { label: 'Expiring ≤ 30 Days',   sublabel: 'Rollover notices due',        value: expiring30,        icon: Clock,          accentColor: '#fbbf24', badgeText: expiring30 > 0 ? 'Alert' : undefined, badgeClass: 'badge-amber', tab: 'maturity', isAlert: expiring30 > 0 },
+    { label: 'Matured (Action Due)', sublabel: 'Past maturity date',          value: maturedReview,     icon: AlertOctagon,   accentColor: '#f87171', badgeText: maturedReview > 0 ? 'Overdue' : undefined, badgeClass: 'badge-red', tab: 'maturity', isAlert: maturedReview > 0 },
+    { label: 'Pending Renewals',     sublabel: 'Under review by authority',   value: pendingRenewals,   icon: RefreshCcw,     accentColor: '#c084fc', tab: 'renewals' },
+    { label: 'Release Requests',     sublabel: 'Awaiting compliance check',   value: pendingReleases,   icon: CornerDownRight,accentColor: '#2dd4bf', tab: 'releases' },
+    { label: 'Open Discrepancies',   sublabel: 'Amount or lien mismatches',   value: openDiscrepancies, icon: FileWarning,    accentColor: '#f87171', badgeText: openDiscrepancies > 0 ? 'Correct' : undefined, badgeClass: 'badge-red', tab: 'verification', isAlert: openDiscrepancies > 0 },
+  ];
+
+  const bankColors = ['#3b82f6', '#22c55e', '#f59e0b', '#14b8a6', '#a855f7', '#ef4444'];
+
   return (
-    <div className="space-y-6">
-      {/* Welcome & Context Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-100 tracking-tight">
-              Regulatory Overview & Compliance Dashboard
-            </h1>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800">
-              Live State
-            </span>
+    <div className={`space-y-5 transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+
+      {/* ── Hero ── */}
+      <div className="relative rounded-lg overflow-hidden scene-container" style={{ minHeight: 180 }}>
+        <div className="absolute inset-0"><AmbientOrb3D /></div>
+
+        <div className="relative z-10 p-5 flex flex-col lg:flex-row gap-5">
+          {/* Left */}
+          <div className="flex-1 space-y-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="badge-blue text-[10px] font-semibold px-2 py-0.5 rounded uppercase tracking-wider">
+                  Regulatory Control Center
+                </span>
+                <span className="flex items-center gap-1 text-[10px]" style={{ color: '#22c55e' }}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 status-live" />
+                  Live
+                </span>
+              </div>
+              <h1 className="text-xl font-bold leading-snug" style={{ color: '#e6edf3', fontFamily: 'Inter, sans-serif' }}>
+                Compliance &amp; Deposit Oversight Dashboard
+              </h1>
+              <p className="text-xs mt-1 max-w-xl" style={{ color: '#8b949e' }}>
+                Real-time regulatory monitoring across{' '}
+                <strong style={{ color: '#e6edf3' }}>{institutions.length} technical institutions</strong> with{' '}
+                <strong style={{ color: '#e6edf3' }}>₹{depositValueCr} Cr</strong> in jointly-liened security deposits.
+              </p>
+            </div>
+
+            {/* Stat pills */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: 'Total Instruments', value: userFdrs.length },
+                { label: 'Active Banks',       value: Object.keys(bankDistribution).length },
+                { label: 'System Date',        value: formatDate(simulatedDate) },
+              ].map(s => (
+                <div key={s.label} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px]"
+                  style={{ background: '#1c2128', border: '1px solid #30363d' }}>
+                  <Dot className="w-3 h-3 shrink-0" style={{ color: '#60a5fa' }} />
+                  <span style={{ color: '#8b949e' }}>{s.label}:</span>
+                  <span className="font-semibold data-mono" style={{ color: '#e6edf3' }}>{s.value}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button onClick={() => onNavigate('verification')}
+                className="btn-primary flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Verification Queue
+                {pendingVerif > 0 && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white/20">{pendingVerif}</span>
+                )}
+              </button>
+              <button onClick={() => onNavigate('maturity')}
+                className="btn-secondary flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md">
+                <Clock className="w-3.5 h-3.5" style={{ color: '#fbbf24' }} />
+                Maturity Monitor
+                {expiring30 > 0 && (
+                  <span className="badge-amber text-[9px] font-bold px-1.5 py-0.5 rounded">{expiring30}</span>
+                )}
+              </button>
+            </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Real-time monitoring across {institutions.length} technical institutions & ₹{(totalDepositValue / 10000000).toFixed(2)} Cr in verified security deposits.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="text-right">
-            <span className="text-[11px] text-slate-400">Current System Date:</span>
-            <p className="text-xs font-mono font-bold text-cyan-400">{formatDate(simulatedDate)}</p>
+
+          {/* 3D Vault */}
+          <div className="lg:w-72 xl:w-80 shrink-0">
+            <VaultCanvas3D
+              totalAmount={`₹${depositValueCr} Cr`}
+              instrumentsCount={userFdrs.filter(f => f.lifecycleStatus === 'ACTIVE').length}
+            />
           </div>
-          <button
-            onClick={() => onNavigate('verification')}
-            className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Open Verification Queue ({pendingVerification})</span>
-          </button>
         </div>
       </div>
 
-      {/* Top KPI Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-        {/* Card 1: Total Active FDRs */}
-        <div 
-          onClick={() => onNavigate('fdr_registry')}
-          className="bg-slate-900/90 border border-slate-800 hover:border-slate-700 p-4 rounded-xl shadow-sm cursor-pointer transition-all hover:translate-y-[-1px] group"
-        >
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium">Active Instruments</span>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform">
-              <FileCheck2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-100 font-mono">{totalActiveFdrs}</span>
-            <span className="text-[11px] text-emerald-400 font-medium">/ {userFdrs.length} Total</span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">Enforced with AICTE joint lien</p>
+      {/* ── KPI Cards ── */}
+      <div>
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2" style={{ color: '#8b949e' }}>
+            <TrendingUp className="w-3.5 h-3.5" style={{ color: '#60a5fa' }} />
+            Key Metrics
+          </h2>
+          <span className="text-[10px]" style={{ color: '#484f58' }}>Click to drill down</span>
         </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {kpiCards.map((card, i) => {
+            const Icon = card.icon;
+            return (
+              <div key={card.label} onClick={() => onNavigate(card.tab)}
+                className={`kpi-card fade-in-up stagger-${i + 1} relative p-4 cursor-pointer group`}
+                style={{ borderColor: card.isAlert ? `${card.accentColor}30` : undefined }}>
 
-        {/* Card 2: Total Recorded Value */}
-        <div 
-          onClick={() => onNavigate('fdr_registry')}
-          className="bg-slate-900/90 border border-slate-800 hover:border-slate-700 p-4 rounded-xl shadow-sm cursor-pointer transition-all hover:translate-y-[-1px] group"
-        >
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium">Total Recorded Deposits</span>
-            <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 group-hover:scale-110 transition-transform">
-              <IndianRupee className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-100 font-mono">{formatINR(totalDepositValue, true)}</span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">{formatINR(totalDepositValue)} aggregate</p>
-        </div>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-7 h-7 rounded-md flex items-center justify-center"
+                    style={{ background: `${card.accentColor}15`, color: card.accentColor }}>
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                  <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ color: '#8b949e' }} />
+                </div>
 
-        {/* Card 3: Pending Verification */}
-        <div 
-          onClick={() => onNavigate('verification')}
-          className="bg-slate-900/90 border border-slate-800 hover:border-blue-700/60 p-4 rounded-xl shadow-sm cursor-pointer transition-all hover:translate-y-[-1px] group"
-        >
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium">Pending Verification</span>
-            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:scale-110 transition-transform">
-              <ShieldAlert className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-blue-400 font-mono">{pendingVerification}</span>
-            {pendingVerification > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 font-bold border border-blue-800">
-                Awaiting Scrutiny
-              </span>
-            )}
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">Requires officer sign-off</p>
-        </div>
+                <div className="flex items-end gap-1.5 mb-1">
+                  <span className="text-2xl font-bold data-mono leading-none"
+                    style={{ color: card.isAlert ? card.accentColor : '#e6edf3' }}>
+                    {card.value}
+                  </span>
+                  {card.badgeText && (
+                    <span className={`${card.badgeClass} text-[9px] font-semibold px-1.5 py-0.5 rounded mb-0.5`}>
+                      {card.badgeText}
+                    </span>
+                  )}
+                </div>
 
-        {/* Card 4: Expiring in ≤30 Days */}
-        <div 
-          onClick={() => onNavigate('maturity')}
-          className="bg-slate-900/90 border border-slate-800 hover:border-amber-700/60 p-4 rounded-xl shadow-sm cursor-pointer transition-all hover:translate-y-[-1px] group"
-        >
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium">Expiring ≤ 30 Days</span>
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 group-hover:scale-110 transition-transform">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-amber-400 font-mono">{expiring30Days}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 font-bold border border-amber-800">
-              Rollover Alert
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">Renewal notices dispatched</p>
-        </div>
-
-        {/* Card 5: Matured Needs Review */}
-        <div 
-          onClick={() => onNavigate('maturity')}
-          className="bg-slate-900/90 border border-slate-800 hover:border-rose-700/60 p-4 rounded-xl shadow-sm cursor-pointer transition-all hover:translate-y-[-1px] group"
-        >
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium">Matured (Action Needed)</span>
-            <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 group-hover:scale-110 transition-transform">
-              <AlertOctagon className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-rose-400 font-mono">{maturedReview}</span>
-            {maturedReview > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 font-bold border border-rose-800">
-                Action Overdue
-              </span>
-            )}
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">Exceeded maturity date</p>
-        </div>
-
-        {/* Card 6: Pending Renewals */}
-        <div 
-          onClick={() => onNavigate('renewals')}
-          className="bg-slate-900/90 border border-slate-800 hover:border-indigo-700/60 p-4 rounded-xl shadow-sm cursor-pointer transition-all hover:translate-y-[-1px] group"
-        >
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium">Pending Renewals</span>
-            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:scale-110 transition-transform">
-              <RefreshCcw className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-indigo-400 font-mono">{pendingRenewals}</span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">Proposed replacement FDRs</p>
-        </div>
-
-        {/* Card 7: Pending Releases */}
-        <div 
-          onClick={() => onNavigate('releases')}
-          className="bg-slate-900/90 border border-slate-800 hover:border-purple-700/60 p-4 rounded-xl shadow-sm cursor-pointer transition-all hover:translate-y-[-1px] group"
-        >
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium">Release / Refund Requests</span>
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 group-hover:scale-110 transition-transform">
-              <CornerDownRight className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-purple-400 font-mono">{pendingReleases}</span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">AICTE compliance verification</p>
-        </div>
-
-        {/* Card 8: Discrepancy & Missing Docs */}
-        <div 
-          onClick={() => onNavigate('verification')}
-          className="bg-slate-900/90 border border-slate-800 hover:border-rose-700/60 p-4 rounded-xl shadow-sm cursor-pointer transition-all hover:translate-y-[-1px] group"
-        >
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-medium">Open Discrepancies</span>
-            <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 group-hover:scale-110 transition-transform">
-              <FileWarning className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-rose-400 font-mono">{openDiscrepancies}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 font-bold border border-rose-800">
-              Needs Correction
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">Amount or lien mismatches</p>
+                <p className="text-[11px] font-medium leading-tight" style={{ color: '#e6edf3' }}>{card.label}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: '#484f58' }}>{card.sublabel}</p>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Two-Column Analytics & Distribution Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2/3): Bank Distribution & Lifecycle Breakdown */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Bank Exposure Distribution */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
+      {/* ── Analytics + Queue ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        {/* Left 2-col: Bank exposure + lifecycle pipeline */}
+        <div className="lg:col-span-2 space-y-4">
+
+          {/* Bank Exposure */}
+          <div className="card p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm font-bold text-slate-200">Issuing Bank Exposure Distribution</h3>
-                <p className="text-xs text-slate-400">Total recorded deposit capital secured across scheduled banks</p>
+                <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: '#e6edf3' }}>
+                  <span className="w-2 h-2 rounded-full bg-blue-500 status-live" />
+                  Issuing Bank Exposure
+                </h3>
+                <p className="text-[10px] mt-0.5" style={{ color: '#484f58' }}>
+                  Deposit capital secured across scheduled banks
+                </p>
               </div>
-              <span className="text-[11px] font-mono text-cyan-400 font-semibold">
-                {Object.keys(bankDistribution).length} Active Banks
+              <span className="badge-blue text-[10px] font-semibold px-2 py-0.5 rounded">
+                {Object.keys(bankDistribution).length} Banks
               </span>
             </div>
 
             <div className="space-y-3">
-              {Object.entries(bankDistribution).map(([bank, amount]) => {
-                const percentage = totalDepositValue > 0 ? (amount / totalDepositValue) * 100 : 0;
+              {Object.entries(bankDistribution).map(([bank, amount], idx) => {
+                const pct = totalValue > 0 ? (amount / totalValue) * 100 : 0;
+                const col = bankColors[idx % bankColors.length];
                 return (
-                  <div key={bank} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-slate-200">{bank}</span>
+                  <div key={bank}>
+                    <div className="flex items-center justify-between mb-1 text-xs">
+                      <span className="font-medium flex items-center gap-1.5" style={{ color: '#e6edf3' }}>
+                        <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: col }} />
+                        {bank}
+                      </span>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-slate-300 font-semibold">{formatINR(amount, true)}</span>
-                        <span className="text-slate-400 text-[11px] w-12 text-right">{percentage.toFixed(1)}%</span>
+                        <span className="data-mono font-semibold" style={{ color: '#e6edf3' }}>{formatINR(amount, true)}</span>
+                        <span className="data-mono text-[10px] w-10 text-right" style={{ color: '#484f58' }}>{pct.toFixed(1)}%</span>
                       </div>
                     </div>
-                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.max(percentage, 3)}%` }}
-                      />
+                    <div className="progress-track h-1.5">
+                      <div className="progress-fill h-1.5 transition-all duration-700"
+                        style={{ width: `${Math.max(pct, 2)}%`, background: col }} />
                     </div>
                   </div>
                 );
@@ -293,145 +261,121 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onSele
             </div>
           </div>
 
-          {/* Lifecycle Stage Breakdown */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-200 mb-1">FDR Lifecycle Pipeline</h3>
-            <p className="text-xs text-slate-400 mb-4">Current stage distribution of all recorded instruments</p>
+          {/* Lifecycle Pipeline */}
+          <div className="card p-5">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: '#e6edf3' }}>
+                <Activity className="w-3.5 h-3.5" style={{ color: '#60a5fa' }} />
+                FDR Lifecycle Pipeline
+              </h3>
+              <p className="text-[10px] mt-0.5" style={{ color: '#484f58' }}>
+                Stage distribution across all recorded instruments
+              </p>
+            </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-                <span className="text-[11px] text-slate-400">Active & Verified</span>
-                <p className="text-xl font-bold font-mono text-emerald-400 mt-1">{lifecycleCounts.ACTIVE}</p>
-                <div className="h-1 bg-emerald-500/30 rounded mt-2">
-                  <div className="h-1 bg-emerald-400 rounded" style={{ width: `${(lifecycleCounts.ACTIVE / userFdrs.length) * 100}%` }} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {[
+                { label: 'Active & Verified',     count: lifecycle.ACTIVE,              color: '#22c55e' },
+                { label: 'Under Scrutiny',         count: lifecycle.UNDER_VERIFICATION,  color: '#60a5fa' },
+                { label: 'Correction Flagged',     count: lifecycle.CORRECTION_REQUIRED, color: '#f87171' },
+                { label: 'Matured (Action Due)',   count: lifecycle.MATURED_NEEDS_REVIEW,color: '#fbbf24' },
+                { label: 'Renewal In Progress',    count: lifecycle.RENEWAL_IN_PROGRESS, color: '#c084fc' },
+                { label: 'Release Requested',      count: lifecycle.RELEASE_REQUESTED,   color: '#2dd4bf' },
+              ].map(item => (
+                <div key={item.label} className="p-3 rounded-md"
+                  style={{ background: '#1c2128', border: '1px solid #21262d' }}>
+                  <p className="text-[9px] uppercase tracking-wider font-medium mb-1" style={{ color: '#484f58' }}>{item.label}</p>
+                  <p className="text-xl font-bold data-mono" style={{ color: item.color }}>{item.count}</p>
+                  <div className="progress-track h-0.5 mt-2">
+                    <div className="progress-fill h-0.5"
+                      style={{ width: `${userFdrs.length > 0 ? (item.count / userFdrs.length) * 100 : 0}%`, background: item.color }} />
+                  </div>
                 </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-                <span className="text-[11px] text-slate-400">Under Scrutiny</span>
-                <p className="text-xl font-bold font-mono text-sky-400 mt-1">{lifecycleCounts.UNDER_VERIFICATION}</p>
-                <div className="h-1 bg-sky-500/30 rounded mt-2">
-                  <div className="h-1 bg-sky-400 rounded" style={{ width: `${(lifecycleCounts.UNDER_VERIFICATION / userFdrs.length) * 100}%` }} />
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-                <span className="text-[11px] text-slate-400">Correction Flagged</span>
-                <p className="text-xl font-bold font-mono text-rose-400 mt-1">{lifecycleCounts.CORRECTION_REQUIRED}</p>
-                <div className="h-1 bg-rose-500/30 rounded mt-2">
-                  <div className="h-1 bg-rose-400 rounded" style={{ width: `${(lifecycleCounts.CORRECTION_REQUIRED / userFdrs.length) * 100}%` }} />
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-                <span className="text-[11px] text-slate-400">Matured (Action Due)</span>
-                <p className="text-xl font-bold font-mono text-amber-400 mt-1">{lifecycleCounts.MATURED_NEEDS_REVIEW}</p>
-                <div className="h-1 bg-amber-500/30 rounded mt-2">
-                  <div className="h-1 bg-amber-400 rounded" style={{ width: `${(lifecycleCounts.MATURED_NEEDS_REVIEW / userFdrs.length) * 100}%` }} />
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-                <span className="text-[11px] text-slate-400">Renewal in Progress</span>
-                <p className="text-xl font-bold font-mono text-indigo-400 mt-1">{lifecycleCounts.RENEWAL_IN_PROGRESS}</p>
-                <div className="h-1 bg-indigo-500/30 rounded mt-2">
-                  <div className="h-1 bg-indigo-400 rounded" style={{ width: `${(lifecycleCounts.RENEWAL_IN_PROGRESS / userFdrs.length) * 100}%` }} />
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
-                <span className="text-[11px] text-slate-400">Release Requested</span>
-                <p className="text-xl font-bold font-mono text-purple-400 mt-1">{lifecycleCounts.RELEASE_REQUESTED}</p>
-                <div className="h-1 bg-purple-500/30 rounded mt-2">
-                  <div className="h-1 bg-purple-400 rounded" style={{ width: `${(lifecycleCounts.RELEASE_REQUESTED / userFdrs.length) * 100}%` }} />
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Right Column (1/3): Urgent Scrutiny Queue & Recent Audit Activity */}
-        <div className="space-y-6">
-          {/* Urgent Attention Panel */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
+        {/* Right col: Critical Queue + Audit */}
+        <div className="space-y-4">
+
+          {/* Urgent Queue */}
+          <div className="card p-4" style={{ borderColor: criticalItems.length > 0 ? 'rgba(239,68,68,0.2)' : undefined }}>
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-rose-400" />
-                <h3 className="text-sm font-bold text-slate-200">Urgent Attention Queue</h3>
-              </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 font-bold border border-rose-800">
-                {criticalItems.length} Urgent
-              </span>
+              <h3 className="text-xs font-semibold flex items-center gap-1.5" style={{ color: '#e6edf3' }}>
+                <ShieldAlert className="w-3.5 h-3.5" style={{ color: '#f87171' }} />
+                Urgent Attention Queue
+              </h3>
+              <span className="badge-red text-[9px] font-bold px-1.5 py-0.5 rounded">{criticalItems.length}</span>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-1.5">
               {criticalItems.length === 0 ? (
-                <div className="p-4 text-center text-xs text-slate-400">
-                  <CheckCircle2 className="w-6 h-6 text-emerald-400 mx-auto mb-1" />
-                  All instruments are within healthy compliance parameters!
+                <div className="py-6 text-center">
+                  <CheckCircle2 className="w-7 h-7 mx-auto mb-2" style={{ color: '#22c55e', opacity: 0.5 }} />
+                  <p className="text-xs" style={{ color: '#8b949e' }}>All instruments healthy</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: '#484f58' }}>No urgent actions required</p>
                 </div>
-              ) : (
-                criticalItems.slice(0, 4).map(fdr => {
-                  const badge = getMaturityBadgeStyle(fdr.maturityStatus);
-                  return (
-                    <div
-                      key={fdr.id}
-                      onClick={() => onSelectFdr(fdr.id)}
-                      className="p-3 rounded-xl bg-slate-800/70 border border-slate-700/70 hover:border-slate-600 transition-all cursor-pointer group"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-bold text-slate-200 group-hover:text-cyan-400 transition-colors">
-                          {fdr.fdrNumber}
-                        </span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium border ${badge.bg}`}>
+              ) : criticalItems.slice(0, 4).map(fdr => {
+                const badge = getMaturityBadgeStyle(fdr.maturityStatus);
+                return (
+                  <div key={fdr.id} onClick={() => onSelectFdr(fdr.id)}
+                    className="flex items-start gap-2 p-2.5 rounded-md cursor-pointer transition-colors group"
+                    style={{ background: '#1c2128', border: '1px solid #21262d' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(239,68,68,0.25)'; (e.currentTarget as HTMLElement).style.background = '#22272e'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#21262d'; (e.currentTarget as HTMLElement).style.background = '#1c2128'; }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="data-mono text-[11px] font-semibold group-hover:text-red-400 transition-colors"
+                          style={{ color: '#e6edf3' }}>{fdr.fdrNumber}</span>
+                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded border ${badge.bg}`}>
                           {badge.label}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 truncate mt-1">{fdr.institutionName}</p>
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-700/50 text-[10px] text-slate-500">
-                        <span>Amount: <strong className="text-slate-300">{formatINR(fdr.principalAmount, true)}</strong></span>
-                        <span className="text-cyan-400 flex items-center gap-1 group-hover:underline">
-                          Inspect <ChevronRight className="w-3 h-3" />
+                      <p className="text-[10px] truncate" style={{ color: '#484f58' }}>{fdr.institutionName}</p>
+                      <div className="flex items-center justify-between mt-1 text-[10px]">
+                        <span className="data-mono" style={{ color: '#8b949e' }}>{formatINR(fdr.principalAmount, true)}</span>
+                        <span className="flex items-center gap-0.5" style={{ color: '#f87171' }}>
+                          Inspect <ChevronRight className="w-2.5 h-2.5" />
                         </span>
                       </div>
                     </div>
-                  );
-                })
-              )}
+                  </div>
+                );
+              })}
             </div>
 
-            <button
-              onClick={() => onNavigate('maturity')}
-              className="w-full mt-3 py-2 text-center text-xs text-cyan-400 hover:text-cyan-300 font-semibold border-t border-slate-800 flex items-center justify-center gap-1"
-            >
-              <span>View Full Maturity Schedule</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+            <button onClick={() => onNavigate('maturity')}
+              className="w-full mt-3 py-1.5 text-[10px] flex items-center justify-center gap-1 transition-colors"
+              style={{ borderTop: '1px solid #21262d', color: '#60a5fa' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#93c5fd')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#60a5fa')}>
+              Full Maturity Schedule <ChevronRight className="w-3 h-3" />
             </button>
           </div>
 
-          {/* Recent Audit Activity */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
+          {/* Audit Stream */}
+          <div className="card p-4">
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-sm font-bold text-slate-200">Append-Only Audit Stream</h3>
-              </div>
-              <button
-                onClick={() => onNavigate('audit_trail')}
-                className="text-[11px] text-cyan-400 hover:underline"
-              >
-                View all
-              </button>
+              <h3 className="text-xs font-semibold flex items-center gap-1.5" style={{ color: '#e6edf3' }}>
+                <Activity className="w-3.5 h-3.5" style={{ color: '#2dd4bf' }} />
+                Audit Stream
+              </h3>
+              <button onClick={() => onNavigate('audit_trail')} className="text-[10px] transition-colors"
+                style={{ color: '#60a5fa' }}>View all</button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {auditLogs.slice(0, 4).map(log => (
-                <div key={log.id} className="text-xs border-l-2 border-cyan-500/40 pl-3 py-0.5">
-                  <div className="flex items-center justify-between text-[10px] text-slate-500">
-                    <span className="font-semibold text-slate-300">{log.actorName}</span>
-                    <span className="font-mono">{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <div key={log.id} className="pl-3 py-0.5" style={{ borderLeft: '2px solid #30363d' }}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium" style={{ color: '#e6edf3' }}>{log.actorName}</span>
+                    <span className="data-mono text-[10px]" style={{ color: '#484f58' }}>
+                      {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
-                  <p className="text-slate-300 text-[11px] mt-0.5 line-clamp-2">{log.summary}</p>
+                  <p className="text-[10px] mt-0.5 line-clamp-2" style={{ color: '#8b949e' }}>{log.summary}</p>
                 </div>
               ))}
             </div>

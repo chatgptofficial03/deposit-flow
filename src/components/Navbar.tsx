@@ -1,332 +1,347 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/lib/store';
 import { DEMO_USERS } from '@/lib/mockData';
 import { UserRole } from '@/lib/types';
-import { 
-  Bell, 
-  Search, 
-  RotateCcw, 
-  FastForward, 
-  ShieldCheck, 
-  User, 
-  Calendar, 
+import {
+  Bell,
+  Search,
+  RotateCcw,
+  FastForward,
+  ShieldCheck,
+  Calendar,
   ChevronDown,
   Building,
-  CheckCircle,
   AlertTriangle,
   Info,
   Clock,
-  Sparkles
+  CheckCircle,
+  ChevronRight,
+  Timer,
 } from 'lucide-react';
 
 interface NavbarProps {
   onSearchChange?: (val: string) => void;
-  onOpenNotifications?: () => void;
   onNavigateToFdr?: (fdrId: string) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ 
-  onSearchChange, 
-  onOpenNotifications,
-  onNavigateToFdr 
-}) => {
-  const { 
-    currentUser, 
-    switchRole, 
-    simulatedDate, 
-    advanceSimulationDays, 
-    resetToDefaultData, 
+const ROLE_META: Record<UserRole, { label: string; color: string; bg: string }> = {
+  REGULATORY_ADMIN:    { label: 'Regulatory Admin',     color: '#93c5fd', bg: 'rgba(59,130,246,0.1)' },
+  REGULATORY_OFFICER:  { label: 'Scrutiny Officer',     color: '#5eead4', bg: 'rgba(20,184,166,0.1)' },
+  INSTITUTION_ADMIN:   { label: 'Institution Admin',    color: '#86efac', bg: 'rgba(34,197,94,0.1)'  },
+  INSTITUTION_OPERATOR:{ label: 'Institution Operator', color: '#86efac', bg: 'rgba(34,197,94,0.1)'  },
+  AUDITOR:             { label: 'Statutory Auditor',    color: '#fcd34d', bg: 'rgba(245,158,11,0.1)' },
+};
+
+export const Navbar: React.FC<NavbarProps> = ({ onSearchChange, onNavigateToFdr }) => {
+  const {
+    currentUser,
+    switchRole,
+    simulatedDate,
+    advanceSimulationDays,
+    resetToDefaultData,
     notifications,
     markNotificationAsRead,
-    markAllNotificationsRead 
+    markAllNotificationsRead,
   } = useApp();
 
-  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
-  const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
-  const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
-  const [searchVal, setSearchVal] = useState('');
+  const [roleOpen, setRoleOpen]   = useState(false);
+  const [timeOpen, setTimeOpen]   = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [search, setSearch]       = useState('');
+  const [focused, setFocused]     = useState(false);
+  const [liveTime, setLiveTime]   = useState('');
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unread  = notifications.filter(n => !n.isRead).length;
+  const roleMeta = ROLE_META[currentUser.role];
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchVal(e.target.value);
-    if (onSearchChange) onSearchChange(e.target.value);
-  };
+  useEffect(() => {
+    const tick = () =>
+      setLiveTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
 
-  const getRoleBadge = (role: UserRole) => {
-    switch (role) {
-      case 'REGULATORY_ADMIN':
-        return { label: 'Regulatory Admin', bg: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/70 dark:text-purple-300' };
-      case 'REGULATORY_OFFICER':
-        return { label: 'Scrutiny Officer', bg: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/70 dark:text-blue-300' };
-      case 'INSTITUTION_ADMIN':
-        return { label: 'Institution Admin', bg: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300' };
-      case 'INSTITUTION_OPERATOR':
-        return { label: 'Institution Operator', bg: 'bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/70 dark:text-teal-300' };
-      case 'AUDITOR':
-        return { label: 'Statutory Auditor', bg: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/70 dark:text-amber-300' };
-    }
-  };
+  // Close all dropdowns on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('[data-dd]')) {
+        setRoleOpen(false);
+        setTimeOpen(false);
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
-  const badge = getRoleBadge(currentUser.role);
+  const closeAll = () => { setRoleOpen(false); setTimeOpen(false); setNotifOpen(false); };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-slate-900 border-b border-slate-800 text-slate-100 shadow-sm backdrop-blur-md">
-      {/* SIH Hackathon Header Banner */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 px-4 py-1.5 text-xs flex flex-wrap items-center justify-between border-b border-indigo-800/60">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded bg-indigo-500/20 px-2 py-0.5 font-semibold text-indigo-300 border border-indigo-500/40">
-            <Sparkles className="w-3 h-3 text-indigo-300" /> SIH26265
-          </span>
-          <span className="text-slate-300 hidden sm:inline">
-            Smart India Hackathon 2026 Prototype — Security Deposit / FDR Portal Streamlining
-          </span>
-        </div>
-        <div className="flex items-center gap-3 text-[11px] text-slate-400">
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-cyan-400" /> Sim Date: <strong className="text-cyan-300 font-mono">{simulatedDate}</strong>
-          </span>
-          <span className="hidden md:inline text-slate-500">|</span>
-          <button 
-            onClick={resetToDefaultData}
-            title="Reset dataset to pristine seed state"
-            className="flex items-center gap-1 text-slate-400 hover:text-amber-300 transition-colors"
-          >
-            <RotateCcw className="w-3 h-3" /> Reset Demo
-          </button>
+    <header className="navbar-ambient sticky top-0 z-50 w-full">
+
+      {/* ── Context strip ── */}
+      <div style={{ background: '#161b22', borderBottom: '1px solid #21262d' }}
+        className="px-4 py-1">
+        <div className="max-w-screen-xl mx-auto flex items-center justify-between" style={{ fontSize: '11px' }}>
+          <div className="flex items-center gap-3">
+            <span className="font-semibold badge-blue px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
+              SIH 26265
+            </span>
+            <span style={{ color: '#8b949e' }} className="hidden sm:inline">
+              Smart India Hackathon 2026 · AICTE Security Deposit Management System
+            </span>
+          </div>
+          <div className="flex items-center gap-4" style={{ color: '#8b949e' }}>
+            <span className="hidden sm:flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 status-live" />
+              <span className="data-mono">{liveTime} IST</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Calendar className="w-3 h-3" style={{ color: '#60a5fa' }} />
+              Sim: <strong className="data-mono" style={{ color: '#e6edf3' }}>{simulatedDate}</strong>
+            </span>
+            <button
+              onClick={resetToDefaultData}
+              className="flex items-center gap-1 transition-colors hover:text-amber-400"
+              title="Reset demo data to seed state"
+            >
+              <RotateCcw className="w-3 h-3" /> Reset
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Main Navbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        {/* Left: Product Brand */}
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 text-white font-black text-xl tracking-tighter">
-            DF
+      {/* ── Main bar ── */}
+      <div className="max-w-screen-xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
+
+        {/* Brand */}
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="relative float">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+              style={{ background: 'linear-gradient(135deg, #1d4ed8, #2563eb)', boxShadow: '0 2px 8px rgba(37,99,235,0.4)' }}>
+              DF
+              <span className="absolute w-2 h-2 rounded-full orbit"
+                style={{ background: '#22c55e', boxShadow: '0 0 4px rgba(34,197,94,0.6)', top: 0, right: 0 }} />
+            </div>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-lg font-bold tracking-tight text-white font-sans">
-                Deposit<span className="text-cyan-400">Flow</span>
+              <span className="text-base font-bold" style={{ color: '#e6edf3', letterSpacing: '-0.01em' }}>
+                Deposit<span style={{ color: '#60a5fa' }}>Flow</span>
               </span>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
-                AICTE Pilot
+              <span className="badge-blue text-[9px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                AICTE
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 -mt-0.5 hidden sm:block">
-              Centralized FDR Lifecycle & Compliance Portal
+            <p className="text-[10px] hidden sm:block leading-none mt-0.5" style={{ color: '#484f58' }}>
+              Centralized FDR &amp; Compliance Portal
             </p>
           </div>
         </div>
 
-        {/* Center: Global Search */}
-        <div className="flex-1 max-w-md hidden md:block">
+        {/* Search */}
+        <div className="flex-1 max-w-sm hidden md:block">
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2"
+              style={{ color: focused ? '#60a5fa' : '#484f58' }} />
             <input
               type="text"
-              value={searchVal}
-              onChange={handleSearch}
-              placeholder="Search FDR #, bank, branch, or institute code..."
-              className="w-full bg-slate-800/80 border border-slate-700/80 rounded-lg pl-9 pr-4 py-1.5 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all"
+              value={search}
+              onChange={e => { setSearch(e.target.value); onSearchChange?.(e.target.value); }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              placeholder="Search FDR #, bank, institution..."
+              className="input-base w-full pl-8 pr-3 py-1.5 text-xs"
             />
           </div>
         </div>
 
-        {/* Right: Actions, Simulation Time Machine, Notifications & Role Switcher */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Time Machine Button */}
-          <div className="relative">
+        {/* Actions */}
+        <div className="flex items-center gap-1.5">
+
+          {/* Time machine */}
+          <div className="relative" data-dd>
             <button
-              onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-200 hover:bg-slate-700 hover:text-white transition-all"
-              title="Fast forward simulated time to test maturity notifications"
+              onClick={e => { e.stopPropagation(); closeAll(); setTimeOpen(v => !v); }}
+              className="btn-secondary flex items-center gap-1.5 px-2.5 py-1.5 text-xs"
+              title="Advance simulated date"
             >
-              <FastForward className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Time Machine</span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
+              <Timer className="w-3.5 h-3.5" style={{ color: '#fbbf24' }} />
+              <span className="hidden sm:inline">Simulate</span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${timeOpen ? 'rotate-180' : ''}`}
+                style={{ color: '#8b949e' }} />
             </button>
 
-            {timeDropdownOpen && (
-              <div 
-                className="absolute right-0 mt-2 w-56 rounded-xl bg-slate-800 border border-slate-700 shadow-2xl p-2 z-50 text-xs animate-in fade-in zoom-in-95 duration-100"
-                onClick={() => setTimeDropdownOpen(false)}
-              >
-                <div className="px-2 py-1.5 text-[11px] font-semibold text-slate-400 border-b border-slate-700 mb-1">
-                  Maturity Engine Simulation
-                </div>
-                <button
-                  onClick={() => advanceSimulationDays(7)}
-                  className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-slate-700 flex items-center justify-between text-slate-200"
-                >
-                  <span>Advance +7 Days</span>
-                  <span className="text-[10px] text-amber-400">Trigger 7-Day Alert</span>
-                </button>
-                <button
-                  onClick={() => advanceSimulationDays(15)}
-                  className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-slate-700 flex items-center justify-between text-slate-200"
-                >
-                  <span>Advance +15 Days</span>
-                  <span className="text-[10px] text-amber-400">Trigger 15-Day Alert</span>
-                </button>
-                <button
-                  onClick={() => advanceSimulationDays(30)}
-                  className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-slate-700 flex items-center justify-between text-slate-200"
-                >
-                  <span>Advance +30 Days</span>
-                  <span className="text-[10px] text-rose-400 font-semibold">Mature Active FDRs</span>
-                </button>
-                <button
-                  onClick={() => advanceSimulationDays(60)}
-                  className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-slate-700 flex items-center justify-between text-slate-200"
-                >
-                  <span>Advance +60 Days</span>
-                  <span className="text-[10px] text-rose-500 font-semibold">Overdue Threshold</span>
-                </button>
+            {timeOpen && (
+              <div className="dropdown absolute right-0 mt-1 w-52 p-1 z-50 slide-in" data-dd>
+                <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
+                  style={{ color: '#8b949e', borderBottom: '1px solid #30363d' }}>
+                  Maturity Simulation
+                </p>
+                {[
+                  { d: 7,  label: '+7 Days',  note: '7-day alert' },
+                  { d: 15, label: '+15 Days', note: '15-day warning' },
+                  { d: 30, label: '+30 Days', note: 'Mature FDRs' },
+                  { d: 60, label: '+60 Days', note: 'Overdue threshold' },
+                ].map(({ d, label, note }) => (
+                  <button key={d}
+                    onClick={() => { advanceSimulationDays(d); setTimeOpen(false); }}
+                    className="w-full text-left px-3 py-1.5 rounded-md flex items-center justify-between text-xs transition-colors"
+                    style={{ color: '#e6edf3' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#22272e')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <span className="font-medium">{label}</span>
+                    <span style={{ color: '#fbbf24', fontSize: '10px' }}>{note}</span>
+                  </button>
+                ))}
               </div>
             )}
           </div>
 
-          {/* Notifications Dropdown */}
-          <div className="relative">
+          {/* Notifications */}
+          <div className="relative" data-dd>
             <button
-              onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
-              className="relative p-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
-              aria-label="View notifications"
+              onClick={e => { e.stopPropagation(); closeAll(); setNotifOpen(v => !v); }}
+              className="btn-secondary relative p-1.5 rounded-md"
+              aria-label="Notifications"
             >
-              <Bell className="w-4 h-4" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center border-2 border-slate-900 animate-pulse">
-                  {unreadCount}
+              <Bell className="w-4 h-4" style={{ color: unread > 0 ? '#f87171' : '#8b949e' }} />
+              {unread > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full text-white font-bold"
+                  style={{ width: '16px', height: '16px', fontSize: '9px', background: '#dc2626', border: '1px solid #0d1117' }}>
+                  {unread}
                 </span>
               )}
             </button>
 
-            {notifDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl bg-slate-800 border border-slate-700 shadow-2xl z-50 overflow-hidden text-xs">
-                <div className="px-4 py-3 bg-slate-900/80 border-b border-slate-700 flex items-center justify-between">
+            {notifOpen && (
+              <div className="dropdown absolute right-0 mt-1 w-80 z-50 overflow-hidden slide-in" data-dd>
+                <div className="flex items-center justify-between px-4 py-2.5"
+                  style={{ borderBottom: '1px solid #30363d', background: '#1c2128' }}>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-100">Notifications</span>
-                    {unreadCount > 0 && (
-                      <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-bold border border-rose-500/30">
-                        {unreadCount} new
-                      </span>
+                    <span className="text-xs font-semibold" style={{ color: '#e6edf3' }}>Notifications</span>
+                    {unread > 0 && (
+                      <span className="badge-red text-[9px] font-bold px-1.5 py-0.5 rounded">{unread} new</span>
                     )}
                   </div>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={markAllNotificationsRead}
-                      className="text-[11px] text-cyan-400 hover:underline"
-                    >
-                      Mark all as read
+                  {unread > 0 && (
+                    <button onClick={markAllNotificationsRead}
+                      className="text-[10px] transition-colors hover:text-blue-300"
+                      style={{ color: '#60a5fa' }}>
+                      Mark all read
                     </button>
                   )}
                 </div>
-                <div className="max-h-80 overflow-y-auto divide-y divide-slate-700/60">
+
+                <div className="max-h-72 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <div className="p-6 text-center text-slate-400">
-                      No notifications right now
+                    <div className="py-8 text-center">
+                      <CheckCircle className="w-7 h-7 mx-auto mb-2" style={{ color: '#22c55e', opacity: 0.5 }} />
+                      <p className="text-xs" style={{ color: '#8b949e' }}>No notifications</p>
                     </div>
-                  ) : (
-                    notifications.slice(0, 6).map(n => (
-                      <div 
-                        key={n.id}
-                        onClick={() => {
-                          markNotificationAsRead(n.id);
-                          if (n.relatedFdrId && onNavigateToFdr) {
-                            onNavigateToFdr(n.relatedFdrId);
-                            setNotifDropdownOpen(false);
-                          }
-                        }}
-                        className={`p-3.5 hover:bg-slate-750 transition-colors cursor-pointer ${
-                          !n.isRead ? 'bg-slate-700/40' : ''
-                        }`}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          <div className="mt-0.5">
-                            {n.priority === 'URGENT' ? (
-                              <AlertTriangle className="w-4 h-4 text-rose-400" />
-                            ) : n.category === 'VERIFICATION' ? (
-                              <ShieldCheck className="w-4 h-4 text-blue-400" />
-                            ) : (
-                              <Info className="w-4 h-4 text-cyan-400" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-semibold text-slate-200 text-xs leading-snug">{n.title}</p>
-                            <p className="text-slate-400 text-[11px] mt-0.5 line-clamp-2">{n.message}</p>
-                            <div className="flex items-center gap-2 mt-1.5 text-[10px] text-slate-500">
-                              <Clock className="w-3 h-3" />
-                              <span>{new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                              <span className="font-medium text-cyan-400/90 hover:underline">View Record →</span>
-                            </div>
-                          </div>
+                  ) : notifications.slice(0, 6).map((n, i) => (
+                    <div
+                      key={n.id}
+                      onClick={() => {
+                        markNotificationAsRead(n.id);
+                        if (n.relatedFdrId && onNavigateToFdr) {
+                          onNavigateToFdr(n.relatedFdrId);
+                          setNotifOpen(false);
+                        }
+                      }}
+                      className="flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors"
+                      style={{
+                        borderBottom: i < 5 ? '1px solid #21262d' : 'none',
+                        background: !n.isRead ? 'rgba(59,130,246,0.04)' : 'transparent',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#22272e')}
+                      onMouseLeave={e => (e.currentTarget.style.background = !n.isRead ? 'rgba(59,130,246,0.04)' : 'transparent')}
+                    >
+                      <div className="mt-0.5 shrink-0">
+                        {n.priority === 'URGENT'
+                          ? <AlertTriangle className="w-3.5 h-3.5" style={{ color: '#f87171' }} />
+                          : n.category === 'VERIFICATION'
+                          ? <ShieldCheck className="w-3.5 h-3.5" style={{ color: '#60a5fa' }} />
+                          : <Info className="w-3.5 h-3.5" style={{ color: '#8b949e' }} />
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold leading-snug" style={{ color: '#e6edf3' }}>{n.title}</p>
+                        <p className="text-[10px] mt-0.5 line-clamp-2" style={{ color: '#8b949e' }}>{n.message}</p>
+                        <div className="flex items-center gap-2 mt-1 text-[10px]" style={{ color: '#484f58' }}>
+                          <Clock className="w-3 h-3" />
+                          {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          <span style={{ color: '#60a5fa' }}>· View →</span>
                         </div>
                       </div>
-                    ))
-                  )}
+                      {!n.isRead && (
+                        <div className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: '#3b82f6' }} />
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <div className="px-4 py-2 bg-slate-900/60 border-t border-slate-700 text-center">
-                  <span className="text-[11px] text-slate-400">
-                    Live System Notification Queue
-                  </span>
+
+                <div className="px-4 py-2 text-center text-[10px]"
+                  style={{ borderTop: '1px solid #21262d', background: '#1c2128', color: '#484f58' }}>
+                  System Notification Queue
                 </div>
               </div>
             )}
           </div>
 
-          {/* Quick Persona / Role Switcher for Hackathon Judges */}
-          <div className="relative">
+          {/* Role switcher */}
+          <div className="relative" data-dd>
             <button
-              onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-              className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 hover:border-slate-600 transition-all"
+              onClick={e => { e.stopPropagation(); closeAll(); setRoleOpen(v => !v); }}
+              className="btn-secondary flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-md"
             >
-              <div className="w-7 h-7 rounded-full bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 flex items-center justify-center font-bold text-xs">
+              <div className="w-7 h-7 rounded-md flex items-center justify-center font-bold text-xs text-white shrink-0"
+                style={{ background: '#1d4ed8' }}>
                 {currentUser.avatar}
               </div>
-              <div className="text-left hidden lg:block">
-                <p className="text-xs font-semibold text-slate-200 leading-tight">{currentUser.name}</p>
-                <p className="text-[10px] text-slate-400 leading-none">{badge.label}</p>
+              <div className="hidden lg:block text-left">
+                <p className="text-xs font-medium leading-tight" style={{ color: '#e6edf3' }}>{currentUser.name}</p>
+                <p className="text-[10px] leading-none mt-0.5" style={{ color: '#8b949e' }}>{roleMeta.label}</p>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className={`w-3 h-3 transition-transform ${roleOpen ? 'rotate-180' : ''}`}
+                style={{ color: '#8b949e' }} />
             </button>
 
-            {roleDropdownOpen && (
-              <div 
-                className="absolute right-0 mt-2 w-72 rounded-xl bg-slate-800 border border-slate-700 shadow-2xl p-2 z-50 text-xs"
-                onClick={() => setRoleDropdownOpen(false)}
-              >
-                <div className="px-3 py-2 border-b border-slate-700 mb-1">
-                  <p className="text-[11px] font-semibold text-slate-400">SIH Hackathon Role Switcher</p>
-                  <p className="text-[10px] text-slate-500">Switch persona to test role-based permissions</p>
-                </div>
+            {roleOpen && (
+              <div className="dropdown absolute right-0 mt-1 w-64 p-1 z-50 slide-in" data-dd>
+                <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
+                  style={{ color: '#8b949e', borderBottom: '1px solid #30363d' }}>
+                  Switch Role
+                </p>
                 {DEMO_USERS.map(user => {
-                  const uBadge = getRoleBadge(user.role);
-                  const isSelected = currentUser.role === user.role;
+                  const meta = ROLE_META[user.role];
+                  const isActive = currentUser.role === user.role;
                   return (
                     <button
                       key={user.id}
-                      onClick={() => switchRole(user.role, user.institutionId)}
-                      className={`w-full text-left p-2 rounded-lg flex items-start gap-2.5 transition-all ${
-                        isSelected ? 'bg-cyan-950/60 border border-cyan-800/80' : 'hover:bg-slate-700/60'
-                      }`}
+                      onClick={() => { switchRole(user.role, user.institutionId); setRoleOpen(false); }}
+                      className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors"
+                      style={{ background: isActive ? 'rgba(59,130,246,0.08)' : 'transparent' }}
+                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '#22272e'; }}
+                      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                     >
-                      <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-200 mt-0.5">
+                      <div className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold text-white shrink-0"
+                        style={{ background: '#1e3a8a' }}>
                         {user.avatar}
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-slate-200">{user.name}</span>
-                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-medium ${uBadge.bg}`}>
-                            {uBadge.label}
-                          </span>
+                          <span className="text-xs font-medium" style={{ color: '#e6edf3' }}>{user.name}</span>
+                          {isActive && <CheckCircle className="w-3 h-3" style={{ color: '#22c55e' }} />}
                         </div>
-                        <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{user.designation}</p>
+                        <p className="text-[10px] truncate" style={{ color: '#8b949e' }}>{user.designation}</p>
                         {user.institutionName && (
-                          <p className="text-[9px] text-cyan-400/90 mt-0.5 flex items-center gap-1">
-                            <Building className="w-2.5 h-2.5" /> {user.institutionName}
+                          <p className="text-[9px] flex items-center gap-1 mt-0.5" style={{ color: '#60a5fa' }}>
+                            <Building className="w-2.5 h-2.5 shrink-0" /> {user.institutionName}
                           </p>
                         )}
                       </div>

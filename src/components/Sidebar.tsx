@@ -2,194 +2,182 @@
 
 import React from 'react';
 import { useApp } from '@/lib/store';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  ShieldCheck, 
-  Clock, 
-  RefreshCw, 
-  CornerDownRight, 
-  Building2, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  FileText,
+  ShieldCheck,
+  Clock,
+  RefreshCcw,
+  CornerDownRight,
   History,
-  Info,
-  ExternalLink,
-  PlusCircle,
-  AlertCircle
+  BarChart3,
+  Building,
+  FileSearch,
+  ChevronRight,
 } from 'lucide-react';
 
-export type NavTab = 
+export type NavTab =
   | 'dashboard'
   | 'fdr_registry'
   | 'verification'
   | 'maturity'
   | 'renewals'
   | 'releases'
-  | 'institutions'
-  | 'reports'
   | 'audit_trail'
-  | 'hackathon_info';
+  | 'reports'
+  | 'institutions';
 
 interface SidebarProps {
   activeTab: NavTab;
-  onTabChange: (tab: NavTab) => void;
-  onOpenNewFdrModal: () => void;
+  onNavigate: (tab: NavTab) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ 
-  activeTab, 
-  onTabChange,
-  onOpenNewFdrModal 
-}) => {
+interface NavItem {
+  tab: NavTab;
+  label: string;
+  sublabel: string;
+  icon: React.ElementType;
+  badge?: string | number;
+  badgeVariant?: 'blue' | 'green' | 'amber' | 'red' | 'teal' | 'muted';
+}
+
+interface NavSection {
+  heading: string;
+  items: NavItem[];
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate }) => {
   const { currentUser, fdrs, renewals, releases } = useApp();
 
-  const isInstitutionUser = currentUser.role === 'INSTITUTION_ADMIN' || currentUser.role === 'INSTITUTION_OPERATOR';
-  const visibleFdrs = isInstitutionUser ? fdrs.filter(f => f.institutionId === currentUser.institutionId) : fdrs;
+  const pendingVerif  = fdrs.filter(f => f.lifecycleStatus === 'UNDER_VERIFICATION' || f.lifecycleStatus === 'CORRECTION_REQUIRED').length;
+  const maturingSoon  = fdrs.filter(f => f.daysUntilMaturity >= 0 && f.daysUntilMaturity <= 30 && f.lifecycleStatus === 'ACTIVE').length;
+  const pendingRenew  = renewals.filter(r => r.status === 'SUBMITTED' || r.status === 'UNDER_REVIEW').length;
+  const pendingRel    = releases.filter(r => r.status === 'AWAITING_DECISION' || r.status === 'UNDER_REVIEW').length;
 
-  // Real calculated badge numbers
-  const pendingVerificationCount = visibleFdrs.filter(f => f.verificationStatus === 'PENDING' || f.lifecycleStatus === 'UNDER_VERIFICATION').length;
-  const urgentMaturityCount = visibleFdrs.filter(f => f.daysUntilMaturity <= 7 && f.lifecycleStatus === 'ACTIVE').length;
-  const pendingRenewalsCount = renewals.filter(r => r.status === 'SUBMITTED' || r.status === 'UNDER_REVIEW').length;
-  const pendingReleasesCount = releases.filter(r => r.status === 'AWAITING_DECISION' || r.status === 'UNDER_REVIEW').length;
-
-  const navItems = [
+  const sections: NavSection[] = [
     {
-      id: 'dashboard',
-      label: 'Operational Dashboard',
-      icon: LayoutDashboard,
-      roles: ['REGULATORY_ADMIN', 'REGULATORY_OFFICER', 'INSTITUTION_ADMIN', 'INSTITUTION_OPERATOR', 'AUDITOR']
+      heading: 'Overview',
+      items: [
+        { tab: 'dashboard',   label: 'Dashboard',        sublabel: 'Summary & KPIs',     icon: LayoutDashboard },
+        { tab: 'institutions',label: 'Institutions',     sublabel: 'Technical colleges',  icon: Building },
+      ],
     },
     {
-      id: 'fdr_registry',
-      label: 'FDR & Deposit Registry',
-      icon: FileText,
-      badge: visibleFdrs.length.toString(),
-      roles: ['REGULATORY_ADMIN', 'REGULATORY_OFFICER', 'INSTITUTION_ADMIN', 'INSTITUTION_OPERATOR', 'AUDITOR']
+      heading: 'Instruments',
+      items: [
+        { tab: 'fdr_registry',  label: 'FDR Registry',    sublabel: 'All deposit records', icon: FileText,
+          badge: fdrs.length, badgeVariant: 'muted' },
+        { tab: 'verification',  label: 'Verification',    sublabel: 'Scrutiny queue',       icon: ShieldCheck,
+          badge: pendingVerif || undefined, badgeVariant: 'red' },
+        { tab: 'maturity',      label: 'Maturity Monitor',sublabel: 'Expiry tracking',      icon: Clock,
+          badge: maturingSoon || undefined, badgeVariant: 'amber' },
+      ],
     },
     {
-      id: 'verification',
-      label: 'Verification & Scrutiny',
-      icon: ShieldCheck,
-      badge: pendingVerificationCount > 0 ? pendingVerificationCount.toString() : undefined,
-      badgeColor: 'bg-blue-500 text-white',
-      roles: ['REGULATORY_ADMIN', 'REGULATORY_OFFICER', 'AUDITOR']
+      heading: 'Workflows',
+      items: [
+        { tab: 'renewals',  label: 'Renewals',         sublabel: 'Rollover requests',   icon: RefreshCcw,
+          badge: pendingRenew || undefined, badgeVariant: 'blue' },
+        { tab: 'releases',  label: 'Releases',         sublabel: 'Lien cancellations',  icon: CornerDownRight,
+          badge: pendingRel || undefined, badgeVariant: 'blue' },
+      ],
     },
     {
-      id: 'maturity',
-      label: 'Maturity Monitoring',
-      icon: Clock,
-      badge: urgentMaturityCount > 0 ? `${urgentMaturityCount} Urgent` : undefined,
-      badgeColor: 'bg-rose-500 text-white animate-pulse',
-      roles: ['REGULATORY_ADMIN', 'REGULATORY_OFFICER', 'INSTITUTION_ADMIN', 'INSTITUTION_OPERATOR', 'AUDITOR']
+      heading: 'Intelligence',
+      items: [
+        { tab: 'reports',    label: 'Reports',       sublabel: 'Statutory analytics', icon: BarChart3 },
+        { tab: 'audit_trail',label: 'Audit Trail',   sublabel: 'Tamper-evident log',  icon: History },
+      ],
     },
-    {
-      id: 'renewals',
-      label: 'Renewals & Replacements',
-      icon: RefreshCw,
-      badge: pendingRenewalsCount > 0 ? pendingRenewalsCount.toString() : undefined,
-      roles: ['REGULATORY_ADMIN', 'REGULATORY_OFFICER', 'INSTITUTION_ADMIN', 'INSTITUTION_OPERATOR', 'AUDITOR']
-    },
-    {
-      id: 'releases',
-      label: 'Release & Refund Portal',
-      icon: CornerDownRight,
-      badge: pendingReleasesCount > 0 ? pendingReleasesCount.toString() : undefined,
-      roles: ['REGULATORY_ADMIN', 'REGULATORY_OFFICER', 'INSTITUTION_ADMIN', 'INSTITUTION_OPERATOR', 'AUDITOR']
-    },
-    {
-      id: 'institutions',
-      label: 'Technical Institutions',
-      icon: Building2,
-      roles: ['REGULATORY_ADMIN', 'REGULATORY_OFFICER', 'AUDITOR']
-    },
-    {
-      id: 'reports',
-      label: 'Reports & Analytics',
-      icon: BarChart3,
-      roles: ['REGULATORY_ADMIN', 'REGULATORY_OFFICER', 'INSTITUTION_ADMIN', 'INSTITUTION_OPERATOR', 'AUDITOR']
-    },
-    {
-      id: 'audit_trail',
-      label: 'Tamper-Evident Audit Trail',
-      icon: History,
-      roles: ['REGULATORY_ADMIN', 'REGULATORY_OFFICER', 'AUDITOR']
-    },
-    {
-      id: 'hackathon_info',
-      label: 'SIH26265 Architecture',
-      icon: Info,
-      roles: ['REGULATORY_ADMIN', 'REGULATORY_OFFICER', 'INSTITUTION_ADMIN', 'INSTITUTION_OPERATOR', 'AUDITOR']
-    }
   ];
 
+  const isVisible = (tab: NavTab): boolean => {
+    const role = currentUser.role;
+    if (tab === 'verification' && role === 'INSTITUTION_OPERATOR') return false;
+    if ((tab === 'reports' || tab === 'audit_trail') && role === 'INSTITUTION_OPERATOR') return false;
+    return true;
+  };
+
+  const badgeClass: Record<string, string> = {
+    blue: 'badge-blue', green: 'badge-green', amber: 'badge-amber',
+    red: 'badge-red', teal: 'badge-teal', muted: 'badge-muted',
+  };
+
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col justify-between shrink-0 select-none">
-      <div className="p-4 space-y-4">
-        {/* Quick Submit Action Button for Institution Users or Admins */}
-        <button
-          onClick={onOpenNewFdrModal}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold text-xs shadow-md shadow-cyan-900/40 transition-all hover:scale-[1.01]"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>Submit New FDR Record</span>
-        </button>
+    <aside className="sidebar-bg w-56 shrink-0 flex flex-col overflow-y-auto">
+      <nav className="flex-1 py-3 px-2 space-y-4">
+        {sections.map(section => {
+          const visibleItems = section.items.filter(i => isVisible(i.tab));
+          if (visibleItems.length === 0) return null;
 
-        {/* Tenant Isolation Banner for Institution Role */}
-        {isInstitutionUser && (
-          <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-[11px]">
-            <p className="text-slate-400 font-medium">Institution Workspace:</p>
-            <p className="text-cyan-400 font-bold truncate mt-0.5">{currentUser.institutionName}</p>
-            <p className="text-[10px] text-slate-500">Data isolated to your institute records</p>
-          </div>
-        )}
+          return (
+            <div key={section.heading}>
+              {/* Section heading */}
+              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
+                style={{ color: '#484f58' }}>
+                {section.heading}
+              </p>
 
-        {/* Navigation Links */}
-        <nav className="space-y-1">
-          {navItems
-            .filter(item => item.roles.includes(currentUser.role))
-            .map(item => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onTabChange(item.id as NavTab)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                    isActive
-                      ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
-                      : 'hover:bg-slate-800 text-slate-300 hover:text-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span 
-                      className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                        item.badgeColor || 'bg-slate-800 text-slate-400 border border-slate-700'
-                      }`}
+              {/* Items */}
+              <div className="space-y-0.5">
+                {visibleItems.map(item => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.tab;
+
+                  return (
+                    <button
+                      key={item.tab}
+                      onClick={() => onNavigate(item.tab)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors group ${isActive ? 'nav-active' : ''}`}
+                      style={{
+                        background: isActive ? undefined : 'transparent',
+                        color: isActive ? '#60a5fa' : '#8b949e',
+                        borderLeft: isActive ? undefined : '2px solid transparent',
+                      }}
+                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '#1c2128'; (e.currentTarget as HTMLElement).style.color = '#e6edf3'; }}
+                      onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = '#8b949e'; } }}
                     >
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-        </nav>
-      </div>
+                      {/* Icon */}
+                      <Icon className="w-4 h-4 shrink-0 transition-colors" />
 
-      {/* Footer Info Box */}
-      <div className="p-4 border-t border-slate-800 bg-slate-950/40">
-        <div className="flex items-center justify-between text-[11px] text-slate-400">
-          <span className="font-semibold text-slate-300">DepositFlow v1.0</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
-            System Live
-          </span>
+                      {/* Label */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium leading-none" style={{ color: isActive ? '#60a5fa' : 'inherit' }}>
+                          {item.label}
+                        </p>
+                        <p className="text-[10px] leading-none mt-0.5" style={{ color: '#484f58' }}>
+                          {item.sublabel}
+                        </p>
+                      </div>
+
+                      {/* Badge */}
+                      {item.badge !== undefined && (
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${badgeClass[item.badgeVariant || 'muted']}`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div className="px-3 pb-3 pt-2" style={{ borderTop: '1px solid #21262d' }}>
+        <div className="flex items-center gap-2.5 px-3 py-2 rounded-md"
+          style={{ background: '#1c2128', border: '1px solid #30363d' }}>
+          <div className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold text-white shrink-0"
+            style={{ background: '#1d4ed8' }}>
+            {currentUser.avatar}
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold truncate" style={{ color: '#e6edf3' }}>{currentUser.name}</p>
+            <p className="text-[9px] truncate" style={{ color: '#484f58' }}>{currentUser.designation}</p>
+          </div>
         </div>
-        <p className="text-[10px] text-slate-500 mt-1">
-          Smart India Hackathon 2026<br />Problem Statement SIH26265
-        </p>
       </div>
     </aside>
   );

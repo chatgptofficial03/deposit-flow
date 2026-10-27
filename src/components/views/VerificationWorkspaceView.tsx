@@ -22,6 +22,7 @@ import {
   HelpCircle,
   ArrowRight
 } from 'lucide-react';
+import { ShieldScan3D } from '@/components/3d/ShieldScan3D';
 
 interface VerificationWorkspaceViewProps {
   preselectedFdrId?: string;
@@ -154,6 +155,13 @@ export const VerificationWorkspaceView: React.FC<VerificationWorkspaceViewProps>
 
   return (
     <div className="space-y-5">
+      {/* 3D Shield Hero */}
+      <ShieldScan3D
+        verifiedCount={fdrs.filter(f => f.verificationStatus === 'VERIFIED_OFFICIAL').length}
+        pendingCount={queue.length}
+        scanProgress={Math.round((fdrs.filter(f => f.verificationStatus === 'VERIFIED_OFFICIAL').length / Math.max(fdrs.length, 1)) * 100)}
+      />
+
       {/* Workspace Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-sm">
         <div>

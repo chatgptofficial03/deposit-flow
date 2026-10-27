@@ -17,6 +17,7 @@ import {
   ArrowRight,
   TrendingDown
 } from 'lucide-react';
+import { MaturityTimeline3D } from '@/components/3d/MaturityTimeline3D';
 
 interface MaturityMonitorViewProps {
   onSelectFdr: (fdrId: string) => void;
@@ -59,6 +60,13 @@ export const MaturityMonitorView: React.FC<MaturityMonitorViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* 3D Maturity Timeline Hero */}
+      <MaturityTimeline3D
+        urgentCount={urgent7Days.length}
+        expiring30={upcoming30Days.length}
+        activeCount={userFdrs.filter(f => f.lifecycleStatus === 'ACTIVE').length}
+      />
+
       {/* Title & Interactive Simulation Time Machine */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

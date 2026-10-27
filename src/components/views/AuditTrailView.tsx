@@ -14,6 +14,7 @@ import {
   Terminal,
   CheckCircle2
 } from 'lucide-react';
+import { ShieldScan3D } from '@/components/3d/ShieldScan3D';
 
 export const AuditTrailView: React.FC = () => {
   const { auditLogs } = useApp();
@@ -36,6 +37,13 @@ export const AuditTrailView: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 3D Audit Shield Hero */}
+      <ShieldScan3D
+        verifiedCount={auditLogs.length}
+        pendingCount={filteredLogs.length}
+        scanProgress={100}
+      />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm">
         <div>

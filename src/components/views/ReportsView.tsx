@@ -15,6 +15,7 @@ import {
   Calendar,
   Filter
 } from 'lucide-react';
+import { NetworkGraph3D } from '@/components/3d/NetworkGraph3D';
 
 export const ReportsView: React.FC = () => {
   const { currentUser, fdrs, institutions, renewals, releases, auditLogs } = useApp();
@@ -119,6 +120,14 @@ export const ReportsView: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 3D Hero */}
+      <NetworkGraph3D
+        nodeCount={userFdrs.length || 15}
+        label="Statutory Reports & Analytics Intelligence"
+        sublabel="Comprehensive compliance reporting across all deposit instruments and institutions"
+        accentColor={0x10b981}
+      />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm">
         <div>

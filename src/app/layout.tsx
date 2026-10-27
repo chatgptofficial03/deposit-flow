@@ -5,11 +5,13 @@ import "./globals.css";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "DepositFlow — Security Deposit & FDR Management System | SIH26265",
-  description: "Centralized FDR Lifecycle Management, Verification & Compliance Monitoring for AICTE Technical Institutions and Regulatory Authorities.",
+  title: "DepositFlow — AICTE Security Deposit & FDR Compliance Portal",
+  description: "Centralized FDR Lifecycle Management, Real-time Verification & Compliance Monitoring for AICTE Technical Institutions.",
+  keywords: "FDR, Security Deposit, AICTE, Compliance, Regulatory, DepositFlow",
 };
 
 export default function RootLayout({
@@ -18,8 +20,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark h-full antialiased">
-      <body className={`${inter.variable} font-sans min-h-full flex flex-col bg-slate-950 text-slate-100`}>
+    <html lang="en" className="h-full">
+      <body className={`${inter.variable} font-sans min-h-full`}
+        style={{ background: '#0d1117', color: '#e6edf3' }}>
         {children}
       </body>
     </html>

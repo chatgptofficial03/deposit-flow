@@ -49,7 +49,7 @@ function MainApp() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100">
+    <div className="flex flex-col min-h-screen" style={{ background: '#0d1117', color: '#e6edf3' }}>
       {/* Top Navbar */}
       <Navbar 
         onNavigateToFdr={id => setSelectedFdrId(id)}
@@ -60,12 +60,11 @@ function MainApp() {
         {/* Responsive Left Navigation */}
         <Sidebar
           activeTab={activeTab}
-          onTabChange={tab => setActiveTab(tab)}
-          onOpenNewFdrModal={() => setSubmissionModalOpen(true)}
+          onNavigate={tab => setActiveTab(tab)}
         />
 
         {/* Dynamic Center Work Area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6 max-w-screen-xl mx-auto w-full">
           {activeTab === 'dashboard' && (
             <DashboardView
               onNavigate={tab => setActiveTab(tab)}
@@ -133,9 +132,7 @@ function MainApp() {
             <AuditTrailView />
           )}
 
-          {activeTab === 'hackathon_info' && (
-            <HackathonInfoView />
-          )}
+          {/* hackathon_info tab removed — not in NavTab type */}
         </main>
       </div>
 

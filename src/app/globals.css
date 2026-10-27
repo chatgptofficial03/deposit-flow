@@ -1,26 +1,301 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════
+   DepositFlow — Professional Regulatory Theme
+   Palette: GitHub-dark base · Blue authority accent
+   No neon, no vibe — structured, trustworthy, precise
+═══════════════════════════════════════════════════════ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ── Base surfaces ── */
+  --bg:         #0d1117;
+  --surface-0:  #0d1117;
+  --surface-1:  #161b22;
+  --surface-2:  #1c2128;
+  --surface-3:  #22272e;
+  --surface-4:  #2d333b;
+
+  /* ── Borders ── */
+  --border:     #30363d;
+  --border-sub: #21262d;
+  --border-emp: #444c56;
+
+  /* ── Text ── */
+  --text-primary:   #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted:     #484f58;
+  --text-link:      #58a6ff;
+
+  /* ── Authority blue (primary) ── */
+  --blue-50:  #dbeafe;
+  --blue-100: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
+
+  /* ── Status semantic ── */
+  --green-400: #4ade80;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --green-bg:  rgba(34, 197, 94, 0.08);
+
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+  --amber-bg:  rgba(245, 158, 11, 0.08);
+
+  --red-400:   #f87171;
+  --red-500:   #ef4444;
+  --red-600:   #dc2626;
+  --red-bg:    rgba(239, 68, 68, 0.08);
+
+  --teal-400:  #2dd4bf;
+  --teal-500:  #14b8a6;
+  --teal-600:  #0d9488;
+  --teal-bg:   rgba(20, 184, 166, 0.08);
+
+  --purple-400: #c084fc;
+  --purple-500: #a855f7;
+  --purple-bg:  rgba(168, 85, 247, 0.08);
+
+  /* ── Typography ── */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface-1); }
+::-webkit-scrollbar-thumb { background: var(--surface-4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-emp); }
+
+/* ── Navbar ── */
+.navbar-bg {
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Sidebar ── */
+.sidebar-bg {
+  background: var(--surface-1);
+  border-right: 1px solid var(--border);
+}
+
+/* ── Card base ── */
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* ── Active nav item ── */
+.nav-active {
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 2px solid var(--blue-500);
+  color: var(--blue-400);
+}
+
+/* ── Subtle horizontal rule ── */
+.rule {
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Badge variants ── */
+.badge-blue   { background: rgba(59,130,246,0.12); color: #93c5fd; border: 1px solid rgba(59,130,246,0.2); }
+.badge-green  { background: rgba(34,197,94,0.1);   color: #86efac; border: 1px solid rgba(34,197,94,0.2); }
+.badge-amber  { background: rgba(245,158,11,0.1);  color: #fcd34d; border: 1px solid rgba(245,158,11,0.2); }
+.badge-red    { background: rgba(239,68,68,0.1);   color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
+.badge-teal   { background: rgba(20,184,166,0.1);  color: #5eead4; border: 1px solid rgba(20,184,166,0.2); }
+.badge-purple { background: rgba(168,85,247,0.1);  color: #d8b4fe; border: 1px solid rgba(168,85,247,0.2); }
+.badge-muted  { background: var(--surface-3);       color: var(--text-secondary); border: 1px solid var(--border); }
+
+/* ── Button primary ── */
+.btn-primary {
+  background: var(--blue-600);
+  color: #fff;
+  border: 1px solid var(--blue-700);
+  border-radius: 6px;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-primary:hover { background: var(--blue-700); border-color: var(--blue-800); }
+
+/* ── Button secondary ── */
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-secondary:hover { background: var(--surface-3); border-color: var(--border-emp); }
+
+/* ── KPI card lift ── */
+.kpi-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.kpi-card:hover {
+  border-color: var(--border-emp);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+/* ── Progress bar ── */
+.progress-track {
+  background: var(--surface-3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-fill {
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+/* ── Table styling ── */
+.data-table th {
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+.data-table td {
+  border-bottom: 1px solid var(--border-sub);
+  color: var(--text-primary);
+}
+.data-table tr:hover td { background: var(--surface-2); }
+
+/* ── Input styling ── */
+.input-base {
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-base::placeholder { color: var(--text-muted); }
+.input-base:focus {
+  border-color: var(--blue-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  outline: none;
+}
+
+/* ── Fade-in-up stagger (subtle, professional) ── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up { animation: fade-up 0.3s ease both; }
+.stagger-1 { animation-delay: 0.04s; }
+.stagger-2 { animation-delay: 0.08s; }
+.stagger-3 { animation-delay: 0.12s; }
+.stagger-4 { animation-delay: 0.16s; }
+.stagger-5 { animation-delay: 0.20s; }
+.stagger-6 { animation-delay: 0.24s; }
+.stagger-7 { animation-delay: 0.28s; }
+.stagger-8 { animation-delay: 0.32s; }
+
+/* ── Slide-in ── */
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.slide-in { animation: slide-in 0.2s ease both; }
+
+/* ── Dropdown ── */
+.dropdown {
+  background: var(--surface-2);
+  border: 1px solid var(--border-emp);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+/* ── Status dot ── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.status-live { animation: blink 2s ease-in-out infinite; }
+
+/* ── Gradient text (used sparingly) ── */
+.text-gradient-blue {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Monospace data display ── */
+.data-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Divider ── */
+.divider-glow {
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Navbar ambient (used in navbar class) ── */
+.navbar-ambient {
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── 3D scene container ── */
+.scene-container {
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ── Notification pulse (subtle) ── */
+@keyframes notif-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.15); }
+}
+.notif-pulse { animation: notif-pulse 2s ease-in-out infinite; }
+
+/* ── Float animation for 3D logo only ── */
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-3px); }
+}
+.float { animation: float-subtle 4s ease-in-out infinite; }
+
+/* ── Orbit (logo accent dot) ── */
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(14px) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(14px) rotate(-360deg); }
+}
+.orbit { animation: orbit 6s linear infinite; }

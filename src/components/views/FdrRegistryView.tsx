@@ -25,6 +25,7 @@ import {
   FileText,
   AlertTriangle
 } from 'lucide-react';
+import { NetworkGraph3D } from '@/components/3d/NetworkGraph3D';
 
 interface FdrRegistryViewProps {
   onSelectFdr: (fdrId: string) => void;
@@ -155,6 +156,14 @@ export const FdrRegistryView: React.FC<FdrRegistryViewProps> = ({
 
   return (
     <div className="space-y-5">
+      {/* 3D Hero Banner */}
+      <NetworkGraph3D
+        nodeCount={authorizedFdrs.length || 18}
+        label={`FDR & Deposit Instrument Network — ${filteredFdrs.length} Records`}
+        sublabel="Central repository of institutional security deposits and bank endorsements"
+        accentColor={0x06b6d4}
+      />
+
       {/* Page Title & Top Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
